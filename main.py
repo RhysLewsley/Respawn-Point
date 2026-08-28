@@ -49,100 +49,132 @@ while True:
         ).ask()
 
         if admin_answer == "Add Employee":
-            new_emp_input = questionary.text("Enter the name of the new employee:").ask()
-
-            if new_emp_input is None:
+            first_name = questionary.text("Enter the employee's first name:").ask()
+            if first_name is None:
                 continue
-
-            new_emp = new_emp_input.strip()
-
-            if not new_emp:
-                print("Please enter a name.")
+            
+            first_name = first_name.strip().capitalize()
+            
+            if not first_name or not first_name.isalpha():
+                print("Please enter a valid first name using letters only.")
                 continue
-
-            # Reject any character that is not a letter or a space.
-            if any(not (char.isalpha() or char.isspace()) for char in new_emp):
-                print("Sorry that's not a valid name. Please type a name using letters only.")
+            
+            last_name = questionary.text("Enter the employee's last name:").ask()
+            if last_name is None:
                 continue
-
-            new_emp = " ".join(part.capitalize() for part in new_emp.split())
-
-            # 2. Next, check for duplicates
-            if any(emp.casefold() == new_emp.casefold() for emp in employees):
-                print(f"{new_emp} is already in the employee list.")
-
-            # 3. If it passes both checks, it is a valid, unique name
+            
+            last_name = last_name.strip().capitalize()
+            
+            if not last_name or not last_name.isalpha():
+                print("Please enter a valid last name using letters only.")
+                continue
+            
+            # Generate email automatically
+            email = f"{first_name.lower()}{last_name.lower()}@respawnpoint.com"
+            
+            # Check for duplicates
+            full_name = f"{first_name} {last_name}"
+            if any(emp["first_name"].casefold() == first_name.casefold() and emp["last_name"].casefold() == last_name.casefold() for emp in employees):
+                print(f"{full_name} is already in the employee list.")
             else:
-                employees.append(new_emp)
+                new_employee = {
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "email": email
+                }
+                employees.append(new_employee)
                 save_employees(employees)
-                print(f"{new_emp} has been added to the employee list.")
+                print(f"{full_name} has been added to the employee list.")
+                print(f"Email: {email}")
 
         elif admin_answer == "Remove Employee":
             if not employees:
                 print("No employees to remove.")
                 continue
-
-            emp_to_remove = questionary.select(
-                "Select an employee to remove:", choices=employees
+            
+            # Create employee name display options
+            employee_names = [f"{emp['first_name']} {emp['last_name']}" for emp in employees]
+            menu_choices = employee_names + ["Search Employees", "Back"]
+            
+            selected_option = questionary.select(
+                "Remove Employee Menu:",
+                choices=menu_choices
             ).ask()
-
-            if emp_to_remove is None:
-                continue
-
-            employees.remove(emp_to_remove)
-            save_employees(employees)
-            print(f"{emp_to_remove} has been removed from the employee list.")
+            
+            if selected_option == "Search Employees":
+                emp_to_remove = questionary.autocomplete(
+                    "Search for an employee to remove:",
+                    choices=employee_names
+                ).ask()
+            else:
+                emp_to_remove = selected_option if selected_option in employee_names else None
+            
+            if emp_to_remove:
+                # Find and remove the employee
+                employees = [emp for emp in employees if f"{emp['first_name']} {emp['last_name']}" != emp_to_remove]
+                save_employees(employees)
+                print(f"{emp_to_remove} has been removed from the employee list.")
 
         elif admin_answer == "Edit Employee":
             if not employees:
                 print("No employees to edit.")
                 continue
-
-            emp_to_edit = questionary.select(
-                "Select an employee to edit:", choices=employees
+            
+            # Create employee name display options
+            employee_names = [f"{emp['first_name']} {emp['last_name']}" for emp in employees]
+            menu_choices = employee_names + ["Search Employees", "Back"]
+            
+            selected_option = questionary.select(
+                "Edit Employee Menu:",
+                choices=menu_choices
             ).ask()
-
-            if emp_to_edit is None:
-                continue
-
-            new_name = questionary.text(f"Enter the new name for {emp_to_edit}:").ask()
-
-            if new_name is None:
-                continue
-
-            new_name = new_name.strip()
-
-            if not new_name:
-                print("Please enter a name.")
-                continue
-
-            # Reject any character that is not a letter or a space.
-            if any(not (char.isalpha() or char.isspace()) for char in new_name):
-                print("Sorry that's not a valid name. Please type a name using letters only.")
-                continue
-
-            new_name = " ".join(part.capitalize() for part in new_name.split())
-
-            # 2. Next, check for duplicates
-            if any(emp.casefold() == new_name.casefold() for emp in employees):
-                print(f"{new_name} is already in the employee list.")
-
-            # 3. If it passes both checks, it is a valid, unique name
+            
+            if selected_option == "Search Employees":
+                emp_to_edit = questionary.autocomplete(
+                    "Search for an employee to edit:",
+                    choices=employee_names
+                ).ask()
             else:
-                employees.remove(emp_to_edit)
-                employees.append(new_name)
-                save_employees(employees)
-                print(f"{emp_to_edit} has been edited to {new_name}.")
+                emp_to_edit = selected_option if selected_option in employee_names else None
+            
+            if emp_to_edit:
+                # Find the employee
+                emp_index = next((i for i, emp in enumerate(employees) if f"{emp['first_name']} {emp['last_name']}" == emp_to_edit), None)
+                
+                if emp_index is not None:
+                    what_to_change = questionary.select(
+                        f"What would you like to change for {emp_to_edit}?",
+                        choices=["First Name", "Last Name", "Back"]
+                    ).ask()
+                    
+                    if what_to_change == "First Name":
+                        new_first_name = questionary.text(f"Enter new first name (current: {employees[emp_index]['first_name']}):").ask()
+                        if new_first_name and new_first_name.strip().isalpha():
+                            employees[emp_index]["first_name"] = new_first_name.strip().capitalize()
+                            # Update email
+                            employees[emp_index]["email"] = f"{employees[emp_index]['first_name'].lower()}{employees[emp_index]['last_name'].lower()}@respawnpoint.com"
+                            save_employees(employees)
+                            print(f"First name updated!")
+                    
+                    elif what_to_change == "Last Name":
+                        new_last_name = questionary.text(f"Enter new last name (current: {employees[emp_index]['last_name']}):").ask()
+                        if new_last_name and new_last_name.strip().isalpha():
+                            employees[emp_index]["last_name"] = new_last_name.strip().capitalize()
+                            # Update email
+                            employees[emp_index]["email"] = f"{employees[emp_index]['first_name'].lower()}{employees[emp_index]['last_name'].lower()}@respawnpoint.com"
+                            save_employees(employees)
+                            print(f"Last name updated!")
 
         elif admin_answer == "View Employees":
             employees = load_employees()
             if not employees:
                 print("No employees found.")
             else:
-                print("\nCurrent Employees:")
+                print("\n--- Current Employees ---")
                 for emp in employees:
-                    print(f"- {emp}")
-                print()  # Add an extra newline for spacing
+                    print(f"Name: {emp['first_name']} {emp['last_name']}")
+                    print(f"Email: {emp['email']}")
+                    print()
                 wait_for_input = questionary.text("Press Enter to return to the Admin panel.").ask()
         elif admin_answer == "Exit":
             print("Goodbye!")
@@ -169,11 +201,41 @@ while True:
             if not os.path.exists(games_dir) or not os.listdir(games_dir):
                 print("No games found.")
             else:
-                # Get list of game titles
+                # Get list of game titles and separate by stock status
                 game_titles = os.listdir(games_dir)
+                available_games = []
+                out_of_stock_games = []
                 
-                # Create menu choices with game titles + options
-                menu_choices = game_titles + ["Search Games", "Back"]
+                for game_title in game_titles:
+                    game_path = os.path.join(games_dir, game_title, "game_info.json")
+                    if os.path.exists(game_path):
+                        with open(game_path, "r") as f:
+                            game_data = json.load(f)
+                            stock = game_data.get('stock', 0)
+                            if stock > 0:
+                                available_games.append(game_title)
+                            else:
+                                out_of_stock_games.append(game_title)
+                
+                # Display available and out of stock games
+                print("\n--- Available Games ---")
+                for game in available_games:
+                    game_path = os.path.join(games_dir, game, "game_info.json")
+                    with open(game_path, "r") as f:
+                        game_data = json.load(f)
+                        stock = game_data.get('stock', 0)
+                    print(f"• {game} (Stock: {stock})")
+                
+                if out_of_stock_games:
+                    print("\n--- Out of Stock ---")
+                    for game in out_of_stock_games:
+                        print(f"• {game} (Stock: 0)")
+                
+                print()
+                
+                # Create menu choices
+                all_games = available_games + out_of_stock_games
+                menu_choices = all_games + ["Search Games", "Back"]
                 
                 # Show view games menu with game titles as selectable options
                 selected_option = questionary.select(
@@ -185,7 +247,7 @@ while True:
                     # Let user search and select a game
                     selected_game = questionary.autocomplete(
                         "Search for a game to view details:",
-                        choices=game_titles
+                        choices=all_games
                     ).ask()
                     
                     if selected_game is not None:
@@ -195,12 +257,13 @@ while True:
                                 game_data = json.load(f)
                                 print(f"\nTitle: {selected_game}")
                                 print(f"Price: €{game_data.get('price', 'N/A')}")
+                                print(f"Stock: {game_data.get('stock', 0)}")
                                 print("Synopsis:")
-                                print(f"{game_data.get('synopsis', 'N/A')}")
+                                print(f"  {game_data.get('synopsis', 'N/A')}")
                                 print()
                                 wait = questionary.text("Press Enter to return to the Employee panel.").ask()
                 
-                elif selected_option and selected_option in game_titles:
+                elif selected_option and selected_option in all_games:
                     # If a game title was selected directly
                     game_path = os.path.join(games_dir, selected_option, "game_info.json")
                     if os.path.exists(game_path):
@@ -208,6 +271,7 @@ while True:
                             game_data = json.load(f)
                             print(f"\nTitle: {selected_option}")
                             print(f"Price: €{game_data.get('price', 'N/A')}")
+                            print(f"Stock: {game_data.get('stock', 0)}")
                             print("Synopsis:")
                             print(f"  {game_data.get('synopsis', 'N/A')}")
                             print()
@@ -235,22 +299,34 @@ while True:
             
             game_synopsis = game_synopsis.strip()
             
+            game_stock = questionary.text("How many copies in stock?").ask()
+            if game_stock is None:
+                continue
+            
+            game_stock = game_stock.strip()
+            if not game_stock.isdigit():
+                print("Please enter a valid number for stock.")
+                continue
+            
+            game_stock = int(game_stock)
+            
             # Create games directory if it doesn't exist
             games_dir = os.path.join("games", game_name)
             os.makedirs(games_dir, exist_ok=True)
             
-            # Create JSON file with title, price, and synopsis
+            # Create JSON file with title, price, synopsis, and stock
             game_data = {
                 "title": game_name,
                 "price": game_price,
-                "synopsis": game_synopsis
+                "synopsis": game_synopsis,
+                "stock": game_stock
             }
             game_file = os.path.join(games_dir, "game_info.json")
             
             with open(game_file, "w") as f:
                 json.dump(game_data, f, indent=4)
             
-            print(f"'{game_name}' has been added successfully!")
+            print(f"'{game_name}' has been added successfully with {game_stock} copies in stock!")
 
         elif employee_panel == "Edit Game":
             games_dir = "games"
@@ -283,7 +359,7 @@ while True:
                     # Ask what to change
                     what_to_change = questionary.select(
                         f"What would you like to change for '{selected_game}'?",
-                        choices=["Title", "Price", "Synopsis", "Back"]
+                        choices=["Title", "Price", "Synopsis", "Stock", "Back"]
                     ).ask()
                     
                     game_path = os.path.join(games_dir, selected_game, "game_info.json")
@@ -319,6 +395,14 @@ while True:
                                 with open(game_path, "w") as f:
                                     json.dump(game_data, f, indent=4)
                                 print(f"Synopsis updated!")
+                        
+                        elif what_to_change == "Stock":
+                            new_stock = questionary.text(f"Enter new stock (current: {game_data.get('stock', 0)}):").ask()
+                            if new_stock and new_stock.strip().isdigit():
+                                game_data["stock"] = int(new_stock.strip())
+                                with open(game_path, "w") as f:
+                                    json.dump(game_data, f, indent=4)
+                                print(f"Stock updated to {new_stock.strip()}!")
                         
                         if what_to_change != "Back":
                             wait = questionary.text("Press Enter to return to the Employee panel.").ask()
