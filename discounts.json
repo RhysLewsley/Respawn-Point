@@ -1,0 +1,28 @@
+[
+    {
+        "name": "sales",
+        "code": "SALES30",
+        "percentage": 30.0,
+        "games": [
+            "Final Fantasy 7 Rebirth",
+            "Final Fantasy 7 Remake"
+        ]
+    },
+    {
+        "name": "spring",
+        "code": "SPRING20",
+        "percentage": 20.0,
+        "games": [
+            "Final Fantasy 7 Rebirth"
+        ]
+    },
+    {
+        "name": "big sale",
+        "code": "BIG50",
+        "percentage": 50.0,
+        "games": [
+            "Final Fantasy 7 Remake",
+            "Final Fantasy 7 Rebirth"
+        ]
+    }
+]
